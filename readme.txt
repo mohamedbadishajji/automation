@@ -1,6 +1,6 @@
-OliveSoft RFP Intelligence — RAG Layer
+# OliveSoft RFP Intelligence — RAG Layer
 
-1. Overview
+## 1. Overview
 
 The OliveSoft RAG module is an evidence-driven Retrieval-Augmented Generation (RAG) component designed to identify relevant OliveSoft capabilities from an incoming Request for Proposal (RFP).
 
@@ -20,7 +20,7 @@ The system combines:
 
 This allows the system to distinguish between:
 
-> "This project is semantically similar to the RFP."**
+> **"This project is semantically similar to the RFP."**
 
 and:
 
