@@ -1,6 +1,5 @@
-# OliveSoft RFP Intelligence — RAG Layer
-
-## 1. Overview
+ OliveSoft RFP Intelligence — RAG Layer
+ 1. Overview
 
 The OliveSoft RAG module is an evidence-driven Retrieval-Augmented Generation (RAG) component designed to identify relevant OliveSoft capabilities from an incoming Request for Proposal (RFP).
 
@@ -20,19 +19,18 @@ The system combines:
 
 This allows the system to distinguish between:
 
-> **"This project is semantically similar to the RFP."**
+>This project is semantically similar to the RFP.
 
 and:
 
-> **"This project provides concrete evidence covering specific RFP requirements."**
+> This project provides concrete evidence covering specific RFP requirements.
 
 This distinction is the core principle of the RAG layer.
 
----
 
-## 2. RAG Pipeline
 
-```text
+ 2. RAG Pipeline
+
 Structured RFP
       │
       ▼
@@ -65,13 +63,12 @@ Structured JSON
       │
       ▼
 Proposal Generation Agent
-```
 
 The final proposal-generation step is a downstream component consuming the structured output produced by the RAG layer.
 
----
 
-## 3. Semantic Retrieval
+
+3. Semantic Retrieval
 
 The structured RFP is transformed into a retrieval query containing:
 
@@ -83,19 +80,19 @@ The structured RFP is transformed into a retrieval query containing:
 * Optional requirements
 * Reference requirements
 
-The generated query is converted into an embedding and searched against the **OliveSoft project knowledge base stored in Qdrant**.
+The generated query is converted into an embedding and searched against the OliveSoft project knowledge base stored in Qdrant.
 
-The current MVP retrieves the **Top-5 most semantically relevant projects**.
+The current MVP retrieves the Top-5 most semantically relevant projects.
 
-The semantic similarity score is used as a retrieval signal, but it is **not treated as the final matching decision**.
+The semantic similarity score is used as a retrieval signal, but it is not treated as the final matching decision.
 
 ---
 
-## 4. Why This Is Not a Simple RAG
+ 4. Why This Is Not a Simple RAG
 
 A conventional RAG pipeline generally follows:
 
-```text
+
 Query
   ↓
 Embedding
@@ -105,11 +102,11 @@ Vector Search
 Retrieved Documents
   ↓
 LLM Answer
-```
 
-The OliveSoft RAG layer adds a **requirement-aware validation layer** after retrieval.
 
-```text
+The OliveSoft RAG layer adds a requirement-aware validation layer after retrieval.
+
+
 RFP
  │
  ├── Semantic Understanding
@@ -124,7 +121,7 @@ RFP
  │
  ├── Sector Matching
  │
- ├── Project-Type Matching
+ ├── Project-Type Matchin
  │
  ├── Candidate Matching
  │
@@ -132,19 +129,19 @@ RFP
  │
  ▼
 Evidence-Based Structured Results
-```
+
 
 The system therefore does not rely only on the Qdrant similarity score.
 
-> **Semantic similarity measures relevance. Requirement matching measures requirement coverage.**
+> Semantic similarity measures relevance. Requirement matching measures requirement coverage.
 
 A project can have a high semantic similarity while failing an important mandatory requirement.
 
 Conversely, a project with a lower semantic similarity can still provide useful evidence for a specific requirement.
 
----
 
-## 5. Requirement Matching
+
+ 5. Requirement Matching
 
 After semantic retrieval, each relevant project is evaluated against the RFP requirements.
 
@@ -161,7 +158,7 @@ The current matching layer evaluates requirements such as:
 
 Example:
 
-```text
+`text
 R2 — AWS/Azure + Docker + Kubernetes
 
 Status: MATCHED
@@ -169,55 +166,50 @@ Status: MATCHED
 Evidence:
 Project contains a cloud provider,
 Docker and Kubernetes.
-```
+
 
 The matching layer therefore provides more information than a simple similarity score.
 
----
 
-## 6. Three-Level Requirement Evaluation
+
+ 6. Three-Level Requirement Evaluation
 
 Requirements are classified into three levels:
 
-### MATCHED
+ MATCHED
 
 Sufficient evidence is available to support the requirement.
 
-```text
+
 AWS
 +
 Docker
 +
 Kubernetes
-```
 
-### PARTIAL
+
+ PARTIAL
 
 Some elements are present, but the complete requirement cannot be established.
-
-```text
 CI/CD      → available
 Monitoring → unavailable
 
 Status → PARTIAL
-```
 
-### NOT_FOUND
+
+ NOT_FOUND
 
 No supporting evidence is identified in the evaluated project.
-
-```text
 Central-bank compliance
 → No supporting evidence found
-
 Status → NOT_FOUND
-```
+
 
 This distinction is important for downstream proposal generation because missing evidence should not be presented as an OliveSoft capability.
 
----
 
-## 7. Candidate Matching
+
+ 7. Candidate Matching
 
 The RAG workflow also processes internal CV data to identify candidates relevant to the RFP.
 
@@ -245,13 +237,14 @@ Example:
     "AWS Certified Solutions Architect"
   ]
 }
-```
+
+
 
 This allows the system to distinguish between a candidate who is merely related to the RFP and a candidate who satisfies the specified role and experience constraints.
 
----
 
-## 8. Reference Validation
+
+8. Reference Validation
 
 Reference requirements are evaluated separately from semantic similarity.
 
@@ -277,8 +270,7 @@ Example:
 This prevents a semantically similar project from automatically being treated as a relevant reference without checking its available project metadata.
 
 ---
-
-## 9. Final RAG Output
+ 9. Final RAG Output
 
 The RAG layer produces structured JSON designed to be consumed by the downstream proposal-generation agent.
 
@@ -324,11 +316,9 @@ This machine-readable format provides a stable interface between the RAG layer a
 
 ---
 
-## 10. NLP ↔ RAG ↔ Agent Contract
+10. NLP ↔ RAG ↔ Agent Contract
 
 The RAG layer is being developed around a **shared technical contract** with the NLP and Agent teams.
-
-```text
         NLP
          │
          │ Structured RFP
@@ -339,15 +329,14 @@ The RAG layer is being developed around a **shared technical contract** with the
          │ Matching Results
          ▼
  Proposal Agent
-```
+
 
 The objective is to keep the three components modular and allow each team to evolve independently.
 
-The communication is based on **structured JSON rather than presentation-oriented text**.
+The communication is based on structured JSON rather than presentation-oriented text.
 
 The shared contract is designed around entities such as:
 
-```text
 RFP
 Requirement
 Project
@@ -355,13 +344,12 @@ Candidate
 Reference
 Match
 Evidence
-```
 
 This allows the RAG implementation to evolve without requiring major changes to the NLP or proposal-generation components.
 
----
 
-## 11. Technology Stack
+
+ 11. Technology Stack
 
 | Component            | Technology                   |
 | -------------------- | ---------------------------- |
@@ -373,9 +361,8 @@ This allows the RAG implementation to evolve without requiring major changes to 
 | Matching             | Python Rule-Based Matching   |
 | Interface            | Structured JSON              |
 
-### Current RAG Components
+Current RAG Component
 
-```text
 src/
 ├── embeddings.py
 ├── rfp_query.py
@@ -383,42 +370,38 @@ src/
 ├── candidate_matching.py
 ├── rfp_output.py
 └── rfp_retrieval_v2.py
-```
+
 
 Data currently used by the RAG layer includes:
 
-```text
 data/
 ├── projects.json
 ├── cvs.json
 ├── rfp.json
 └── final_output.json
-```
 
 ---
 
-## 12. Robustness Features
+12. Robustness Features
 
 The current MVP goes beyond basic vector retrieval through:
 
-* **Semantic retrieval**
-* **Requirement-aware matching**
-* **Technology matching**
-* **Sector matching**
-* **Project-type matching**
-* **Candidate matching**
-* **Reference validation**
-* **Partial-match detection**
-* **Requirement-level evidence**
-* **Structured machine-readable output**
+* Semantic retrieval
+* Requirement-aware matching
+* Technology matching
+* Sector matching
+* Project-type matching
+* Candidate matching
+* Reference validation
+* Partial-match detection
+* Requirement-level evidence
+* Structured machine-readable output
 
 The most important design principle is that:
 
-> **The final matching result does not depend solely on the Qdrant similarity score.**
+> The final matching result does not depend solely on the Qdrant similarity score.
 
 The architecture separates:
-
-```text
 Semantic Relevance
         +
 Structured Constraints
@@ -428,17 +411,15 @@ Requirement Coverage
 Evidence
         ↓
 Final Structured Result
-```
+
 
 This separation reduces the risk of treating semantic similarity as proof that a project satisfies a contractual requirement.
 
----
 
-## 13. Current MVP
+ 13. Current MVP
 
 The current implementation successfully performs:
 
-```text
 RFP
  ↓
 Structured Query
@@ -454,13 +435,11 @@ Candidate Matching
 Reference Matching
  ↓
 Structured JSON Output
-```
 
 The generated JSON is ready to be consumed by the downstream proposal-generation layer.
 
----
 
-## 14. Planned Improvements
+ 14. Planned Improvements
 
 The architecture is intentionally modular so that the MVP can evolve toward a more advanced production RAG system.
 
@@ -480,9 +459,7 @@ These improvements can be introduced progressively without changing the core **N
 
 Some improvements may require additional infrastructure or paid services in a future production deployment.
 
----
-
-## 15. Key Design Principles
+15. Key Design Principles
 
 ### Evidence First
 
@@ -514,13 +491,12 @@ Individual components can be replaced or improved without redesigning the entire
 
 ---
 
-## 16. Conclusion
+ 16. Conclusion
 
-The OliveSoft RFP Intelligence RAG layer is designed as an **evidence-driven retrieval and matching architecture**, rather than a conventional "embed and retrieve" system.
+The OliveSoft RFP Intelligence RAG layer is designed as an evidence-driven retrieval and matching architecture, rather than a conventional "embed and retrieve" system.
 
 Its core contribution is the combination of:
 
-```text
 Semantic Retrieval
         +
 Structured Requirement Matching
@@ -536,4 +512,4 @@ Structured Inter-Agent Contract
 
 The current MVP establishes the RAG intelligence layer required to connect OliveSoft's internal knowledge with incoming RFP requirements.
 
-Its modular design also prepares the system for future integration with the **proposal-generation agent**, while allowing the retrieval and matching components to evolve independently.
+Its modular design also prepares the system for future integration with the proposal-generation agent, while allowing the retrieval and matching components to evolve independently.
