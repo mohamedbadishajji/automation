@@ -162,6 +162,7 @@ docker-compose.yml                  # services PostgreSQL + Qdrant
 .env.example                        # modèle des variables d'environnement (sans valeurs)
 ```
 
+
 ## Endpoints API
 
 ### `POST /api/tenders/ingest`
@@ -173,7 +174,7 @@ Reçoit un tender au format JSON brut d'un agent de détection (voir [contrat d'
 ```json
 { "tender_id": "uuid" }
 ```
-Recherche le client (secteur, budget estimé, partenaires) via Tavily + Gemini. Met à jour `tenders.status` à `"researching"`.
+Recherche le client (secteur, budget estimé, partenaires) via Tavily + Gemini. Met à jour `tenders.status` à `"researching"`. **Trace son input (tender) et son output (profil prospect) dans les logs serveur** à chaque exécution.
 
 **Réponse** : la ligne `prospects` créée (`sector`, `estimated_revenue`, `key_partners`).
 
@@ -206,6 +207,8 @@ Le prompt contient des règles strictes apprises par itération sur de vrais éc
 - `estimated_revenue` : distingue explicitement le budget du projet précis du budget sectoriel/national (sinon confusion fréquente, ex: 5 milliards TND au lieu de 600 000)
 - `key_partners` : défini comme des organisations, jamais des technologies (sinon confusion avec `required_technologies`)
 
+Chaque exécution affiche dans les logs serveur un bloc `📥 INPUT` (tender lu) et `📤 OUTPUT` (profil prospect généré) — utile pour la relecture/notation, pas seulement pour le debug.
+
 ### 2. RAG (Qdrant)
 Le portfolio OliveSoft (5 vrais projets extraits de olivesoft.fr + 5 profils-types génériques, sans noms réels) est indexé en deux catégories (`asset_type: "project" | "cv"`), recherchées séparément pour garantir un mélange équilibré de références et de profils dans chaque proposition.
 
@@ -220,6 +223,13 @@ La sortie est un **JSON structuré**, pas du texte libre à re-parser — les ti
 
 ### 4. Export PPTX
 Chaque référence/profil d'équipe obtient sa propre slide (plutôt que d'essayer de faire tenir un nombre variable d'items dans une hauteur fixe). Lecture directe du JSON structuré, aucun regex.
+
+## Fiabilité et validation
+
+Deux mécanismes protègent le pipeline contre les pannes transitoires et les sorties LLM malformées :
+
+- **`lib/withRetry.ts`** : chaque appel Tavily, Gemini ou Qdrant est tenté jusqu'à 3 fois avec un délai croissant entre les tentatives. Utile en particulier pour les erreurs `503` (modèle temporairement surchargé), déjà rencontrées en conditions réelles.
+- **`lib/schemas.ts`** : chaque sortie JSON de Gemini est validée avec `zod` (`ProspectProfileSchema`, `ProposalLLMOutputSchema`) avant d'être utilisée. Le `responseSchema` de l'API Gemini force déjà la forme générale, mais la validation zod attrape les cas limites (nombre négatif, chaîne vide) et échoue avec un message précis plutôt que de laisser une donnée invalide se propager jusqu'en base ou dans le PPTX.
 
 ## Contrat d'intégration pour l'équipe détection
 
@@ -243,7 +253,7 @@ Le JSON complet est conservé tel quel dans `tenders.raw_payload` (rien n'est pe
 ## Tests manuels
 
 ```bash
-# 1. Ingérer un tender (JSON de test dans result.json ou result2.json)
+# 1. Ingérer un tender (JSON de test dans result.json, result2.json, etc.)
 curl -X POST http://localhost:3000/api/tenders/ingest \
   -H "Content-Type: application/json" -d @result.json
 
@@ -254,9 +264,21 @@ curl -X POST http://localhost:3000/api/tenders/{tender_id}/process
 curl http://localhost:3000/api/proposals/{proposal_id}/export -o proposition.pptx
 ```
 
+## Tenders réels testés
+
+| Client | Source | Alignement avec OliveSoft |
+|---|---|---|
+| Ministère des Technologies de la Communication (Tunisie) — identité numérique citoyen | TUNEPS | Faible (dev mobile pur) |
+| SOMELEC (Mauritanie) — Business Intelligence | Appel d'offres public réel | Fort |
+| INSERM — plateforme de collecte de données pour cohortes | TED (avis n°521069-2026) | Modéré (data platform, sans CRM/BI explicite) |
+| IEDOM — expertise DATAVIZ (Power BI / Superset) | TED (avis n°602600-2026) | Très fort (technologies identiques au portfolio) |
+
+Le système a été testé aussi bien sur des cas bien alignés que volontairement mal alignés (banque/cloud-DevOps, fictif) pour valider le comportement d'honnêteté (section "Écarts identifiés").
+
 ## Limitations connues
 
 - Le pipeline de recherche est un enchaînement fixe, pas un agent qui décide dynamiquement de ses recherches — choix assumé pour la fiabilité en 48h
 - `estimated_revenue` reste une estimation par fourchette de complexité en l'absence de chiffre explicite trouvé sur le web — jamais garanti exact
 - Le portfolio OliveSoft indexé dans Qdrant est un jeu de données fixe (5+5) — pas encore de route d'ajout dynamique de nouveaux projets/CV
 - Aucune authentification sur les routes API à ce stade (hors scope hackathon)
+- Le retry automatique (`withRetry`) ne distingue pas les erreurs transitoires (503, timeout) des erreurs permanentes (404, clé API invalide) — il retente dans les deux cas, ce qui ralentit inutilement l'échec pour une erreur permanente
