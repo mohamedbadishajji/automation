@@ -32,11 +32,18 @@ The system manages tenders through a structured status workflow:
 
 
 [ DETECTED ] ──(Trigger Agent)──> [ RESEARCHING ]
+
+
 │
+
+
 (n8n Webhook)
+
 ▼
 [ GENERATING_PROPOSAL ] ◄───────── [ RESEARCHED ]
+
 │
+
 (n8n Webhook)
 ▼
 [ PROPOSAL_READY ] ──(Human Edit)──> [ DOWNLOAD PPTX/PDF ]
