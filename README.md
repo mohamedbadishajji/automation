@@ -29,6 +29,8 @@ An AI-driven backend API designed to automate the Request for Proposal (RFP) lif
 ## 🔄 Tender State Machine
 
 The system manages tenders through a structured status workflow:
+
+
 [ DETECTED ] ──(Trigger Agent)──> [ RESEARCHING ]
 │
 (n8n Webhook)
